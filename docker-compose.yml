@@ -1,7 +1,7 @@
 version: '3.7'
 services:
   ipmi-fan-auto-speed:
-    image: python:3.9
+    build: Dockerfile
     container_name: ipmi-fan-auto-speed
     volumes:
       - ./scripts:/scripts
