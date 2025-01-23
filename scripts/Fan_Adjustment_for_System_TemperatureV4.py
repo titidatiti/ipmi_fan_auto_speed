@@ -4,12 +4,23 @@ import curses
 import subprocess
 import re
 import logging
+import os
 
 # Setup logging
 logging.basicConfig(filename='/tmp/cron.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Spinner states for visual feedback
 spinner_states = ['|', '/', '-', '\\']
+
+# Function to load IPMI configuration from environment variables
+def load_ipmi_config():
+    ipmi_ip = os.getenv('IPMI_IP', '127.0.0.1')  # Default if not found
+    ipmi_user = os.getenv('IPMI_USER', 'admin')      # Default if not found
+    ipmi_pass = os.getenv('IPMI_PASS', 'admin')      # Default if not found
+    return ipmi_ip, ipmi_user, ipmi_pass
+
+# Load the IPMI config from environment variables
+IPMI_IP, IPMI_USER, IPMI_PASS = load_ipmi_config()
 
 # Function to get the color for a value based on type and thresholds
 def get_color_for_value(value, scale_type):
@@ -34,17 +45,23 @@ def get_color_for_value(value, scale_type):
         else:
             return 3  # Red
 
-# Function to get fan information
+# Function to get fan information from remote IPMI
 def get_fan_info():
-    result = subprocess.run(["sudo", "ipmitool", "sdr", "type", "fan"], capture_output=True, text=True)
+    result = subprocess.run(
+        ["sudo", "ipmitool", "-I", "lan", "-H", IPMI_IP, "-U", IPMI_USER, "-P", IPMI_PASS, "sdr", "type", "fan"],
+        capture_output=True, text=True
+    )
     return result.stdout.strip()
 
-# Function to get temperature information
+# Function to get temperature information from remote IPMI
 def get_temp_info():
-    result = subprocess.run(["sudo", "ipmitool", "sdr", "type", "temperature"], capture_output=True, text=True)
+    result = subprocess.run(
+        ["sudo", "ipmitool", "-I", "lan", "-H", IPMI_IP, "-U", IPMI_USER, "-P", IPMI_PASS, "sdr", "type", "temperature"],
+        capture_output=True, text=True
+    )
     return result.stdout.strip()
 
-# Function to get GPU temperature information
+# Function to get GPU temperature information (if available)
 def get_gpu_temp_info():
     result = subprocess.run(["nvidia-smi", "-q", "-d", "TEMPERATURE"], capture_output=True, text=True)
     temp_info = result.stdout
@@ -56,9 +73,11 @@ def extract_numeric_value(s, pattern):
     match = re.search(pattern, s)
     return float(match.group(1)) if match else None
 
-# Function to set fan speed
+# Function to set fan speed on remote IPMI
 def set_fan_speed(speed):
-    subprocess.run(["sudo", "ipmitool", "raw", "0x30", "0x30", "0x02", "0xff", f"{speed:02x}"])
+    subprocess.run(
+        ["sudo", "ipmitool", "-I", "lan", "-H", IPMI_IP, "-U", IPMI_USER, "-P", IPMI_PASS, "raw", "0x30", "0x30", "0x02", "0xff", f"{speed:02x}"]
+    )
 
 # Main function to handle the curses UI and logic
 def main(stdscr):
