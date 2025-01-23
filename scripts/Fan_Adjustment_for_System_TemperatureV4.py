@@ -83,8 +83,8 @@ def get_fan_info():
         logging.info(f"Get fan info: {result}")
     else:
         print(f"Get fan info: {result}")
-    return result.stdout.strip()
     """
+    return result.stdout.strip()
 
 
 # Function to get temperature information from remote IPMI
@@ -112,8 +112,8 @@ def get_temp_info():
         logging.info(f"Get temp info: {result}")
     else:
         print(f"Get temp info: {result}")
-    return result.stdout.strip()
     """
+    return result.stdout.strip()
 
 
 # Function to get GPU temperature information (if available)
