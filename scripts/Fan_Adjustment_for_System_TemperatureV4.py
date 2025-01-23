@@ -62,7 +62,6 @@ def get_color_for_value(value, scale_type):
 def get_fan_info():
     result = subprocess.run(
         [
-            "sudo",
             "ipmitool",
             "-I",
             "lan",
@@ -86,7 +85,6 @@ def get_fan_info():
 def get_temp_info():
     result = subprocess.run(
         [
-            "sudo",
             "ipmitool",
             "-I",
             "lan",
@@ -126,7 +124,6 @@ def extract_numeric_value(s, pattern):
 def set_fan_speed(speed):
     subprocess.run(
         [
-            "sudo",
             "ipmitool",
             "-I",
             "lan",
