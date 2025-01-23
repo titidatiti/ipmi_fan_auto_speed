@@ -7,26 +7,36 @@ import logging
 import os
 
 # Setup logging
-logging.basicConfig(filename='/tmp/cron.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    filename="/tmp/cron.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 # Spinner states for visual feedback
-spinner_states = ['|', '/', '-', '\\']
+spinner_states = ["|", "/", "-", "\\"]
+
+# switch for curses
+use_curses = False  # If you are not using the code in docker, you can enable curses for better visual effect
+
 
 # Function to load IPMI configuration from environment variables
 def load_ipmi_config():
-    ipmi_ip = os.getenv('IPMI_IP', '127.0.0.1')  # Default if not found
-    ipmi_user = os.getenv('IPMI_USER', 'admin')      # Default if not found
-    ipmi_pass = os.getenv('IPMI_PASS', 'admin')      # Default if not found
+    ipmi_ip = os.getenv("IPMI_IP", "127.0.0.1")  # Default if not found
+    ipmi_user = os.getenv("IPMI_USER", "admin")  # Default if not found
+    ipmi_pass = os.getenv("IPMI_PASS", "admin")  # Default if not found
     return ipmi_ip, ipmi_user, ipmi_pass
+
 
 # Load the IPMI config from environment variables
 IPMI_IP, IPMI_USER, IPMI_PASS = load_ipmi_config()
+
 
 # Function to get the color for a value based on type and thresholds
 def get_color_for_value(value, scale_type):
     if value is None:
         return 3  # Default to Red if value is None
-    if scale_type == 'temperature':
+    if scale_type == "temperature":
         if 34 <= value <= 38:
             return 1  # Green
         elif 38 < value <= 50:
@@ -35,7 +45,7 @@ def get_color_for_value(value, scale_type):
             return 4  # Orange
         else:
             return 3  # Red
-    elif scale_type == 'fan_speed':
+    elif scale_type == "fan_speed":
         if 2000 <= value <= 5000:
             return 1  # Green
         elif 5000 < value <= 9000:
@@ -45,39 +55,94 @@ def get_color_for_value(value, scale_type):
         else:
             return 3  # Red
 
+
 # Function to get fan information from remote IPMI
 def get_fan_info():
     result = subprocess.run(
-        ["sudo", "ipmitool", "-I", "lan", "-H", IPMI_IP, "-U", IPMI_USER, "-P", IPMI_PASS, "sdr", "type", "fan"],
-        capture_output=True, text=True
+        [
+            "sudo",
+            "ipmitool",
+            "-I",
+            "lan",
+            "-H",
+            IPMI_IP,
+            "-U",
+            IPMI_USER,
+            "-P",
+            IPMI_PASS,
+            "sdr",
+            "type",
+            "fan",
+        ],
+        capture_output=True,
+        text=True,
     )
     return result.stdout.strip()
+
 
 # Function to get temperature information from remote IPMI
 def get_temp_info():
     result = subprocess.run(
-        ["sudo", "ipmitool", "-I", "lan", "-H", IPMI_IP, "-U", IPMI_USER, "-P", IPMI_PASS, "sdr", "type", "temperature"],
-        capture_output=True, text=True
+        [
+            "sudo",
+            "ipmitool",
+            "-I",
+            "lan",
+            "-H",
+            IPMI_IP,
+            "-U",
+            IPMI_USER,
+            "-P",
+            IPMI_PASS,
+            "sdr",
+            "type",
+            "temperature",
+        ],
+        capture_output=True,
+        text=True,
     )
     return result.stdout.strip()
 
+
 # Function to get GPU temperature information (if available)
 def get_gpu_temp_info():
-    result = subprocess.run(["nvidia-smi", "-q", "-d", "TEMPERATURE"], capture_output=True, text=True)
+    result = subprocess.run(
+        ["nvidia-smi", "-q", "-d", "TEMPERATURE"], capture_output=True, text=True
+    )
     temp_info = result.stdout
     match = re.search(r"GPU Current Temp\s+:\s+(\d+) C", temp_info)
     return int(match.group(1)) if match else None
+
 
 # Function to extract numeric values from strings based on a regex pattern
 def extract_numeric_value(s, pattern):
     match = re.search(pattern, s)
     return float(match.group(1)) if match else None
 
+
 # Function to set fan speed on remote IPMI
 def set_fan_speed(speed):
     subprocess.run(
-        ["sudo", "ipmitool", "-I", "lan", "-H", IPMI_IP, "-U", IPMI_USER, "-P", IPMI_PASS, "raw", "0x30", "0x30", "0x02", "0xff", f"{speed:02x}"]
+        [
+            "sudo",
+            "ipmitool",
+            "-I",
+            "lan",
+            "-H",
+            IPMI_IP,
+            "-U",
+            IPMI_USER,
+            "-P",
+            IPMI_PASS,
+            "raw",
+            "0x30",
+            "0x30",
+            "0x02",
+            "0xff",
+            f"{speed:02x}",
+        ]
     )
+
 
 # Main function to handle the curses UI and logic
 def main(stdscr):
@@ -98,8 +163,8 @@ def main(stdscr):
         stdscr.clear()
 
         # Get fan and temperature information
-        fan_info = get_fan_info().split('\n')
-        temp_info = get_temp_info().split('\n')
+        fan_info = get_fan_info().split("\n")
+        temp_info = get_temp_info().split("\n")
 
         # Correct temperature information labels
         corrected_temp_info = []
@@ -118,8 +183,18 @@ def main(stdscr):
         cpu_count = 0
 
         # Extract highest temperature and mean fan speed
-        highest_temp = max([extract_numeric_value(s, r"\b(\d+\.?\d*) degrees C\b") for s in temp_info if extract_numeric_value(s, r"\b(\d+\.?\d*) degrees C\b") is not None])
-        fan_speeds = [extract_numeric_value(s, r"\b(\d+\.?\d*) RPM\b") for s in fan_info if extract_numeric_value(s, r"\b(\d+\.?\d*) RPM\b") is not None]
+        highest_temp = max(
+            [
+                extract_numeric_value(s, r"\b(\d+\.?\d*) degrees C\b")
+                for s in temp_info
+                if extract_numeric_value(s, r"\b(\d+\.?\d*) degrees C\b") is not None
+            ]
+        )
+        fan_speeds = [
+            extract_numeric_value(s, r"\b(\d+\.?\d*) RPM\b")
+            for s in fan_info
+            if extract_numeric_value(s, r"\b(\d+\.?\d*) RPM\b") is not None
+        ]
         mean_fan_speed = int(sum(fan_speeds) / len(fan_speeds)) if fan_speeds else 0
         gpu_temp = get_gpu_temp_info()
 
@@ -129,18 +204,37 @@ def main(stdscr):
         logging.info(f"GPU Temperature: {gpu_temp}C")
 
         # Get color pairs for display
-        temp_color = get_color_for_value(highest_temp, 'temperature')
-        fan_speed_color = get_color_for_value(mean_fan_speed, 'fan_speed')
-        gpu_temp_color = get_color_for_value(gpu_temp, 'temperature')
+        temp_color = get_color_for_value(highest_temp, "temperature")
+        fan_speed_color = get_color_for_value(mean_fan_speed, "fan_speed")
+        gpu_temp_color = get_color_for_value(gpu_temp, "temperature")
 
         # Display information
         max_y, max_x = stdscr.getmaxyx()
         if max_x < 90:
             stdscr.addstr(0, 0, f"Terminal too small!", curses.color_pair(3))
         else:
-            stdscr.addstr(0, 0, f"Highest Temperature for Board or CPUs: {highest_temp}C ", curses.color_pair(temp_color))
-            stdscr.addstr(0, 60, f"Mean Fan Speed: {mean_fan_speed} RPM ", curses.color_pair(fan_speed_color))
-            stdscr.addstr(0, 90, f"GPU Temperature: {gpu_temp}C" if gpu_temp is not None else "GPU Temperature: N/A", curses.color_pair(gpu_temp_color))
+            stdscr.addstr(
+                0,
+                0,
+                f"Highest Temperature for Board or CPUs: {highest_temp}C ",
+                curses.color_pair(temp_color),
+            )
+            stdscr.addstr(
+                0,
+                60,
+                f"Mean Fan Speed: {mean_fan_speed} RPM ",
+                curses.color_pair(fan_speed_color),
+            )
+            stdscr.addstr(
+                0,
+                90,
+                (
+                    f"GPU Temperature: {gpu_temp}C"
+                    if gpu_temp is not None
+                    else "GPU Temperature: N/A"
+                ),
+                curses.color_pair(gpu_temp_color),
+            )
 
         for i in range(max(len(corrected_temp_info), len(fan_info))):
             stdscr.addstr(i + 2, 58, "|", curses.color_pair(1))
@@ -149,7 +243,12 @@ def main(stdscr):
             stdscr.addstr(idx + 2, 0, f"{temp_line:<54}")
 
         spinner_idx = (spinner_idx + 1) % len(spinner_states)
-        stdscr.addstr(len(corrected_temp_info) + 4, 0, f"Running {spinner_states[spinner_idx]}", curses.color_pair(5))
+        stdscr.addstr(
+            len(corrected_temp_info) + 4,
+            0,
+            f"Running {spinner_states[spinner_idx]}",
+            curses.color_pair(5),
+        )
 
         for idx, fan_line in enumerate(fan_info):
             stdscr.addstr(idx + 2, 60, f"{fan_line:<54}")
@@ -172,8 +271,9 @@ def main(stdscr):
 
         # Exit on 'q' key press
         c = stdscr.getch()
-        if c == ord('q'):
+        if c == ord("q"):
             break
+
 
 if __name__ == "__main__":
     curses.wrapper(main)
