@@ -78,7 +78,10 @@ def get_fan_info():
         capture_output=True,
         text=True,
     )
-    logging.info(f"Get fan info: {result}")
+    if use_curses:
+        logging.info(f"Get fan info: {result}")
+    else:
+        print(f"Get fan info: {result}")
     return result.stdout.strip()
 
 
@@ -102,7 +105,10 @@ def get_temp_info():
         capture_output=True,
         text=True,
     )
-    logging.info(f"Get temp info: {result}")
+    if use_curses:
+        logging.info(f"Get temp info: {result}")
+    else:
+        print(f"Get temp info: {result}")
     return result.stdout.strip()
 
 
