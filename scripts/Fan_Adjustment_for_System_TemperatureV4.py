@@ -8,7 +8,7 @@ import os
 
 # Setup logging
 logging.basicConfig(
-    filename="/tmp/cron.log",
+    filename="log.txt",
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
@@ -64,7 +64,7 @@ def get_fan_info():
         [
             "ipmitool",
             "-I",
-            "lan",
+            "lanplus",
             "-H",
             IPMI_IP,
             "-U",
@@ -78,6 +78,7 @@ def get_fan_info():
         capture_output=True,
         text=True,
     )
+    logging.info(f"Get fan info: {result}")
     return result.stdout.strip()
 
 
@@ -87,7 +88,7 @@ def get_temp_info():
         [
             "ipmitool",
             "-I",
-            "lan",
+            "lanplus",
             "-H",
             IPMI_IP,
             "-U",
@@ -101,6 +102,7 @@ def get_temp_info():
         capture_output=True,
         text=True,
     )
+    logging.info(f"Get temp info: {result}")
     return result.stdout.strip()
 
 
@@ -126,7 +128,7 @@ def set_fan_speed(speed):
         [
             "ipmitool",
             "-I",
-            "lan",
+            "lanplus",
             "-H",
             IPMI_IP,
             "-U",
