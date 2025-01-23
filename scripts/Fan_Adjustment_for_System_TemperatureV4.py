@@ -279,10 +279,11 @@ def main(stdscr):
         else:
             set_fan_speed(0x70)  # Maximum speed
 
-        # Exit on 'q' key press
-        c = stdscr.getch()
-        if c == ord("q"):
-            break
+        if use_curses:
+            # Exit on 'q' key press
+            c = stdscr.getch()
+            if c == ord("q"):
+                break
 
 
 # If not using curses, just run the main logic without UI
