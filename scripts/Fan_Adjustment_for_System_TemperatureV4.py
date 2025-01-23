@@ -17,7 +17,9 @@ logging.basicConfig(
 spinner_states = ["|", "/", "-", "\\"]
 
 # switch for curses
-use_curses = False  # If you are not using the code in docker, you can enable curses for better visual effect
+use_curses = (
+    False  # If you are not using the code in docker, you can enable curses for be
+)
 
 
 # Function to load IPMI configuration from environment variables
@@ -149,18 +151,20 @@ def main(stdscr):
     spinner_idx = 0
     cpu_count = 0  # To track the number of CPUs
 
-    # Initialize curses colors
-    curses.start_color()
-    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
-    curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-    curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-    curses.init_pair(4, curses.COLOR_RED, curses.COLOR_BLACK)
-    curses.init_pair(5, curses.COLOR_YELLOW, curses.COLOR_RED)
+    # Initialize curses colors if use_curses is True
+    if use_curses:
+        curses.start_color()
+        curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+        curses.init_pair(4, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(5, curses.COLOR_YELLOW, curses.COLOR_RED)
 
-    stdscr.timeout(1000)
+        stdscr.timeout(1000)
 
     while True:
-        stdscr.clear()
+        if use_curses:
+            stdscr.clear()
 
         # Get fan and temperature information
         fan_info = get_fan_info().split("\n")
@@ -208,52 +212,53 @@ def main(stdscr):
         fan_speed_color = get_color_for_value(mean_fan_speed, "fan_speed")
         gpu_temp_color = get_color_for_value(gpu_temp, "temperature")
 
-        # Display information
-        max_y, max_x = stdscr.getmaxyx()
-        if max_x < 90:
-            stdscr.addstr(0, 0, f"Terminal too small!", curses.color_pair(3))
-        else:
+        # Display information (only if using curses)
+        if use_curses:
+            max_y, max_x = stdscr.getmaxyx()
+            if max_x < 90:
+                stdscr.addstr(0, 0, f"Terminal too small!", curses.color_pair(3))
+            else:
+                stdscr.addstr(
+                    0,
+                    0,
+                    f"Highest Temperature for Board or CPUs: {highest_temp}C ",
+                    curses.color_pair(temp_color),
+                )
+                stdscr.addstr(
+                    0,
+                    60,
+                    f"Mean Fan Speed: {mean_fan_speed} RPM ",
+                    curses.color_pair(fan_speed_color),
+                )
+                stdscr.addstr(
+                    0,
+                    90,
+                    (
+                        f"GPU Temperature: {gpu_temp}C"
+                        if gpu_temp is not None
+                        else "GPU Temperature: N/A"
+                    ),
+                    curses.color_pair(gpu_temp_color),
+                )
+
+            for i in range(max(len(corrected_temp_info), len(fan_info))):
+                stdscr.addstr(i + 2, 58, "|", curses.color_pair(1))
+
+            for idx, temp_line in enumerate(corrected_temp_info):
+                stdscr.addstr(idx + 2, 0, f"{temp_line:<54}")
+
+            spinner_idx = (spinner_idx + 1) % len(spinner_states)
             stdscr.addstr(
+                len(corrected_temp_info) + 4,
                 0,
-                0,
-                f"Highest Temperature for Board or CPUs: {highest_temp}C ",
-                curses.color_pair(temp_color),
-            )
-            stdscr.addstr(
-                0,
-                60,
-                f"Mean Fan Speed: {mean_fan_speed} RPM ",
-                curses.color_pair(fan_speed_color),
-            )
-            stdscr.addstr(
-                0,
-                90,
-                (
-                    f"GPU Temperature: {gpu_temp}C"
-                    if gpu_temp is not None
-                    else "GPU Temperature: N/A"
-                ),
-                curses.color_pair(gpu_temp_color),
+                f"Running {spinner_states[spinner_idx]}",
+                curses.color_pair(5),
             )
 
-        for i in range(max(len(corrected_temp_info), len(fan_info))):
-            stdscr.addstr(i + 2, 58, "|", curses.color_pair(1))
+            for idx, fan_line in enumerate(fan_info):
+                stdscr.addstr(idx + 2, 60, f"{fan_line:<54}")
 
-        for idx, temp_line in enumerate(corrected_temp_info):
-            stdscr.addstr(idx + 2, 0, f"{temp_line:<54}")
-
-        spinner_idx = (spinner_idx + 1) % len(spinner_states)
-        stdscr.addstr(
-            len(corrected_temp_info) + 4,
-            0,
-            f"Running {spinner_states[spinner_idx]}",
-            curses.color_pair(5),
-        )
-
-        for idx, fan_line in enumerate(fan_info):
-            stdscr.addstr(idx + 2, 60, f"{fan_line:<54}")
-
-        stdscr.refresh()
+            stdscr.refresh()
 
         # Adjust fan speed based on temperature
         if highest_temp <= 38:
@@ -275,5 +280,9 @@ def main(stdscr):
             break
 
 
+# If not using curses, just run the main logic without UI
 if __name__ == "__main__":
-    curses.wrapper(main)
+    if use_curses:
+        curses.wrapper(main)
+    else:
+        main(None)  # For non-curses mode, just run the logic
