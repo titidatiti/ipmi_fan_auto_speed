@@ -8,7 +8,7 @@ import os
 
 # Setup logging
 logging.basicConfig(
-    filename="log.txt",
+    filename="/app/log.txt",
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )

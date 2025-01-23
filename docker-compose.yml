@@ -8,7 +8,7 @@ services:
       - IPMI_USER=${IPMI_USER}
       - IPMI_PASS=${IPMI_PASS}
     volumes:
-      - ./scripts:/scripts
+      - ./scripts:/app/scripts
     command: python /scripts/Fan_Adjustment_for_System_TemperatureV4.py
     deploy:
       resources:
