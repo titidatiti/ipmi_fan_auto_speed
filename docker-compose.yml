@@ -5,8 +5,8 @@ services:
     container_name: ipmi-fan-auto-speed
     environment:
       - IPMI_IP=${IPMI_IP}
-        IPMI_USER=${IPMI_USER}
-        IPMI_PASS=${IPMI_PASS}
+      - IPMI_USER=${IPMI_USER}
+      - IPMI_PASS=${IPMI_PASS}
     volumes:
       - ./scripts:/scripts
     command: python /scripts/Fan_Adjustment_for_System_TemperatureV4.py
