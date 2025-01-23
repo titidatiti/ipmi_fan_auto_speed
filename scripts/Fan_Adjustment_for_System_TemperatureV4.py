@@ -78,11 +78,13 @@ def get_fan_info():
         capture_output=True,
         text=True,
     )
+    """
     if use_curses:
         logging.info(f"Get fan info: {result}")
     else:
         print(f"Get fan info: {result}")
     return result.stdout.strip()
+    """
 
 
 # Function to get temperature information from remote IPMI
@@ -105,11 +107,13 @@ def get_temp_info():
         capture_output=True,
         text=True,
     )
+    """
     if use_curses:
         logging.info(f"Get temp info: {result}")
     else:
         print(f"Get temp info: {result}")
     return result.stdout.strip()
+    """
 
 
 # Function to get GPU temperature information (if available)
@@ -264,6 +268,11 @@ def main(stdscr):
                 stdscr.addstr(idx + 2, 60, f"{fan_line:<54}")
 
             stdscr.refresh()
+
+        else:
+            print(f"Heat of Highest Temp Sensor: {highest_temp}C")
+            print(f"Mean Fan Speed: {mean_fan_speed} RPM")
+            print(f"GPU Temperature: {gpu_temp}C")
 
         # Adjust fan speed based on temperature
         if highest_temp <= 38:
