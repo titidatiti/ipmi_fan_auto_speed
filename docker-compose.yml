@@ -1,0 +1,8 @@
+version: '3.7'
+services:
+  ipmi-fan-auto-speed:
+    image: python3
+    container_name: ipmi-fan-auto-speed
+    volumes:
+      - ./scripts:/scripts
+    command: python /scripts/Fan_Adjustment_for_System_TemperatureV4.py
