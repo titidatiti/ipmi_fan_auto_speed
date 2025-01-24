@@ -196,7 +196,7 @@ def main(stdscr):
         cpu_count = 0
 
         # Extract highest temperature and mean fan speed
-        highest_temp = max(
+        highest_cpu_temp = max(
             [
                 extract_numeric_value(s, r"\b(\d+\.?\d*) degrees C\b")
                 for s in temp_info
@@ -211,13 +211,15 @@ def main(stdscr):
         mean_fan_speed = int(sum(fan_speeds) / len(fan_speeds)) if fan_speeds else 0
         gpu_temp = get_gpu_temp_info()
 
+        max_temp = max(highest_cpu_temp, gpu_temp)
+
         # Log information
-        logging.info(f"Heat of Highest Temp Sensor: {highest_temp}C")
+        logging.info(f"Heat of Highest Temp Sensor: {highest_cpu_temp}C")
         logging.info(f"Mean Fan Speed: {mean_fan_speed} RPM")
         logging.info(f"GPU Temperature: {gpu_temp}C")
 
         # Get color pairs for display
-        temp_color = get_color_for_value(highest_temp, "temperature")
+        cpu_temp_color = get_color_for_value(highest_cpu_temp, "temperature")
         fan_speed_color = get_color_for_value(mean_fan_speed, "fan_speed")
         gpu_temp_color = get_color_for_value(gpu_temp, "temperature")
 
@@ -230,8 +232,8 @@ def main(stdscr):
                 stdscr.addstr(
                     0,
                     0,
-                    f"Highest Temperature for Board or CPUs: {highest_temp}C ",
-                    curses.color_pair(temp_color),
+                    f"Highest Temperature for Board or CPUs: {highest_cpu_temp}C ",
+                    curses.color_pair(cpu_temp_color),
                 )
                 stdscr.addstr(
                     0,
@@ -247,7 +249,7 @@ def main(stdscr):
                         if gpu_temp is not None
                         else "GPU Temperature: N/A"
                     ),
-                    curses.color_pair(gpu_temp_color),
+                    curses.color_pair(gpu_cpu_temp_color),
                 )
 
             for i in range(max(len(corrected_temp_info), len(fan_info))):
@@ -270,20 +272,20 @@ def main(stdscr):
             stdscr.refresh()
 
         else:
-            print(f"Heat of Highest Temp Sensor: {highest_temp}C")
+            print(f"Heat of Highest Temp Sensor: {highest_cpu_temp}C")
             print(f"Mean Fan Speed: {mean_fan_speed} RPM")
             print(f"GPU Temperature: {gpu_temp}C")
 
         # Adjust fan speed based on temperature
-        if highest_temp <= 38:
+        if max_temp <= 38:
             set_fan_speed(0x10)  # Lowest speed
-        elif highest_temp <= 44:
+        elif max_temp <= 44:
             set_fan_speed(0x20)  # New speed
-        elif highest_temp <= 50:
+        elif max_temp <= 50:
             set_fan_speed(0x30)  # Medium speed
-        elif highest_temp <= 60:
+        elif max_temp <= 60:
             set_fan_speed(0x40)  # New speed
-        elif highest_temp <= 70:
+        elif max_temp <= 70:
             set_fan_speed(0x50)  # High speed
         else:
             set_fan_speed(0x70)  # Maximum speed
