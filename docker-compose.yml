@@ -3,6 +3,8 @@ services:
   ipmi-fan-auto-speed:
     build: .
     container_name: ipmi-fan-auto-speed
+    ports:
+      - "${CUSTOM_PORT:8080}:8080"  # custom the port in environment variables in the Portainer stack.
     environment:
       - IPMI_IP=${IPMI_IP}
       - IPMI_USER=${IPMI_USER}

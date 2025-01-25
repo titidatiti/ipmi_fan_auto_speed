@@ -6,6 +6,8 @@ import re
 import logging
 import os
 import time
+from flask import Flask, jsonify
+import threading
 
 # Setup logging
 logging.basicConfig(
@@ -16,6 +18,17 @@ logging.basicConfig(
 
 # Spinner states for visual feedback
 spinner_states = ["|", "/", "-", "\\"]
+
+# Flask app setup
+app = Flask(__name__)
+
+# Global variable to store sensor data
+sensor_data = {
+    "highest_sensor_temp": None,
+    "mean_fan_speed": None,
+    "gpu_temp": None,
+    "status": "waiting_for_sensors",
+}
 
 # switch for curses
 use_curses = (
@@ -228,6 +241,12 @@ def main(stdscr):
 
         max_temp = max(highest_sensor_temp, gpu_temp)
 
+        # Update Flusk variables
+        sensor_data["highest_sensor_temp"] = highest_sensor_temp
+        sensor_data["gpu_temp"] = gpu_temp
+        sensor_data["mean_fan_speed"] = mean_fan_speed
+        sensor_data["status"] = "OK"
+
         # Log information
         logging.info(f"Heat of Highest Temp Sensor: {highest_sensor_temp}C")
         logging.info(f"Mean Fan Speed: {mean_fan_speed} RPM")
@@ -312,9 +331,27 @@ def main(stdscr):
                 break
 
 
+# Flask router
+@app.route("/status", methods=["GET"])
+def get_status():
+    return jsonify(sensor_data)
+
+
+# Run flask in a thread
+def run_flask():
+    app.run(host="0.0.0.0", port=8080)
+
+
 # If not using curses, just run the main logic without UI
 if __name__ == "__main__":
     if use_curses:
         curses.wrapper(main)
     else:
         main(None)  # For non-curses mode, just run the logic
+
+    # create and start flask thread
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = (
+        True  # daemon thread to make sure flask thread ends when main thread ends
+    )
+    flask_thread.start()
