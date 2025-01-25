@@ -8,6 +8,7 @@ import os
 import time
 from flask import Flask, jsonify
 import threading
+from datetime import datetime
 
 # Setup logging
 logging.basicConfig(
@@ -28,6 +29,7 @@ sensor_data = {
     "mean_fan_speed": None,
     "gpu_temp": None,
     "status": "waiting_for_sensors",
+    "time": "0000-00-00 00:00:00",
 }
 
 # switch for curses
@@ -189,6 +191,9 @@ def main(stdscr):
         if use_curses:
             stdscr.clear()
 
+        # Get current time string
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         # Get fan and temperature information
         fan_info = get_fan_info().split("\n")
         temp_info = get_temp_info().split("\n")
@@ -246,6 +251,7 @@ def main(stdscr):
         sensor_data["gpu_temp"] = gpu_temp
         sensor_data["mean_fan_speed"] = mean_fan_speed
         sensor_data["status"] = "OK"
+        sensor_data["time"] = current_time
 
         # Log information
         logging.info(f"Heat of Highest Temp Sensor: {highest_sensor_temp}C")
@@ -307,7 +313,8 @@ def main(stdscr):
 
         else:
             print(
-                f"Sensor: {highest_sensor_temp}C | GPU: {gpu_temp}C | Fan: {mean_fan_speed} RPM"
+                f"[{current_time}] Sensor: {highest_sensor_temp}C | GPU: {gpu_temp}C | Fan: {mean_fan_speed} RPM\n",
+                end="",
             )
 
         # Adjust fan speed based on temperature
