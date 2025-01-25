@@ -11,7 +11,8 @@ services:
       - IPMI_PASS=${IPMI_PASS}
     volumes:
       - ./scripts:/app/scripts
-    restart: always
+    command: python -u /app/scripts/Fan_Adjustment_for_System_TemperatureV4.py
+    restart: unless-stopped
     deploy:
       resources:
         reservations:
