@@ -10,6 +10,12 @@ from flask import Flask, jsonify
 import threading
 from datetime import datetime
 
+# switch for curses
+USE_CURSES = False  # If you are not using the code in docker, you can enable curses by setting the value to True for a better terminal output.
+
+# The status web page port
+STATUS_WEB_PORT = 8080
+
 # Setup logging
 logging.basicConfig(
     filename="/app/log.txt",
@@ -31,11 +37,6 @@ sensor_data = {
     "status": "waiting_for_sensors",
     "time": "0000-00-00 00:00:00",
 }
-
-# switch for curses
-use_curses = (
-    False  # If you are not using the code in docker, you can enable curses for be
-)
 
 
 # Function to load IPMI configuration from environment variables
@@ -177,7 +178,7 @@ def main(stdscr):
     cpu_count = 0  # To track the number of CPUs
 
     # Initialize curses colors if use_curses is True
-    if use_curses:
+    if USE_CURSES:
         curses.start_color()
         curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
         curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
@@ -188,7 +189,7 @@ def main(stdscr):
         stdscr.timeout(1000)
 
     while True:
-        if use_curses:
+        if USE_CURSES:
             stdscr.clear()
 
         # Get current time string
@@ -264,7 +265,7 @@ def main(stdscr):
         gpu_temp_color = get_color_for_value(gpu_temp, "temperature")
 
         # Display information (only if using curses)
-        if use_curses:
+        if USE_CURSES:
             max_y, max_x = stdscr.getmaxyx()
             if max_x < 90:
                 stdscr.addstr(0, 0, f"Terminal too small!", curses.color_pair(3))
@@ -331,7 +332,7 @@ def main(stdscr):
         else:
             set_fan_speed(0x70)  # Maximum speed
 
-        if use_curses:
+        if USE_CURSES:
             # Exit on 'q' key press
             c = stdscr.getch()
             if c == ord("q"):
@@ -347,7 +348,7 @@ def get_status():
 # Run flask in a thread
 def run_flask():
     print("API thread is starting...")
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=STATUS_WEB_PORT)
     print("API thread has started.")
 
 
@@ -362,7 +363,7 @@ if __name__ == "__main__":
     flask_thread.start()
     print("Status API launched.")
 
-    if use_curses:
+    if USE_CURSES:
         curses.wrapper(main)
     else:
         main(None)  # For non-curses mode, just run the logic
