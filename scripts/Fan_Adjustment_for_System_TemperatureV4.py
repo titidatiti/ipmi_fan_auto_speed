@@ -339,23 +339,23 @@ def get_status():
 
 # Run flask in a thread
 def run_flask():
-    print("Flusk thread is starting...")
+    print("API thread is starting...")
     app.run(host="0.0.0.0", port=8080)
-    print("Flusk thread has started.")
+    print("API thread has started.")
 
 
 # If not using curses, just run the main logic without UI
 if __name__ == "__main__":
-    print("Main thread is starting.")
-    if use_curses:
-        curses.wrapper(main)
-    else:
-        main(None)  # For non-curses mode, just run the logic
-
+    print("Ipmi Fan Auto Speed is starting...")
     # create and start flask thread
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.daemon = (
         True  # daemon thread to make sure flask thread ends when main thread ends
     )
     flask_thread.start()
-    print("Flask thread launched.")
+    print("Status API launched.")
+
+    if use_curses:
+        curses.wrapper(main)
+    else:
+        main(None)  # For non-curses mode, just run the logic
