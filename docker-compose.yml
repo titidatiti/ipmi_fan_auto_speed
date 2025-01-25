@@ -1,8 +1,9 @@
 version: '3.7'
 services:
   ipmi-fan-auto-speed:
-    build: .
-    no_cache: true  # force no cache
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: ipmi-fan-auto-speed
     ports:
       - $30225:8080  # custom the port in environment variables in the Portainer stack.
