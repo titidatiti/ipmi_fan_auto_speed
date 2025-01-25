@@ -339,7 +339,7 @@ def get_status():
 
 # Run flask in a thread
 def run_flask():
-    print("Flusk thread is starting"...)
+    print("Flusk thread is starting...")
     app.run(host="0.0.0.0", port=8080)
     print("Flusk thread has started.")
 
