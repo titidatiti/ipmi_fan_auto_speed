@@ -53,7 +53,7 @@ Clone the repo and edit the `scripts/Fan_Adjustment_for_System_TemperatureV4.py`
 
 ```python
 # switch for curses
-USE_CURSES = False  # If you are not using the code in docker, you can enable curses by setting the value to True for a better terminal output.
+USE_CURSES = True  # If you are not using the code in docker, you can enable curses by setting the value to True for a better terminal output.
 ```
 
 Then you will get a terminal output like this:
