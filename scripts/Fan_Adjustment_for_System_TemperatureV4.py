@@ -151,7 +151,7 @@ def extract_numeric_value(s, pattern):
 
 # Function to set fan speed on remote IPMI
 def set_fan_speed(speed):
-    subprocess.run(
+    result = subprocess.run(
         [
             "ipmitool",
             "-I",
@@ -168,9 +168,34 @@ def set_fan_speed(speed):
             "0x02",
             "0xff",
             f"{speed:02x}",
-        ]
+        ],
+        capture_output=True,
+        text=True,
     )
+    return result.stdout.strip()
 
+def set_fan_speed_control_mode(isManual = True):
+    result = subprocess.run(
+        [
+            "ipmitool",
+            "-I",
+            "lanplus",
+            "-H",
+            IPMI_IP,
+            "-U",
+            IPMI_USER,
+            "-P",
+            IPMI_PASS,
+            "raw",
+            "0x30",
+            "0x30",
+            "0x01",
+            "0x00" if isManual else "0x01"
+        ],
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
 
 # Main function to handle the curses UI and logic
 def main(stdscr):
@@ -244,6 +269,8 @@ def main(stdscr):
         if not tempValid:
             time.sleep(5)
             continue
+
+        set_fan_speed_control_mode(True)
 
         max_temp = max(highest_sensor_temp, gpu_temp)
 
