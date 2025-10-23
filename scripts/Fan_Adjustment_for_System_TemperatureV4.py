@@ -34,6 +34,7 @@ sensor_data = {
     "highest_sensor_temp": None,
     "mean_fan_speed": None,
     "gpu_temp": None,
+    "gpu_infos":{},
     "status": "waiting_for_sensors",
     "time": "0000-00-00 00:00:00",
 }
@@ -136,12 +137,54 @@ def get_temp_info():
 # Function to get GPU temperature information (if available)
 def get_gpu_temp_info():
     result = subprocess.run(
-        ["nvidia-smi", "-q", "-d", "TEMPERATURE"], capture_output=True, text=True
+        ["nvidia-smi", "--query-gpu=index,name,temperature.gpu", "--format=csv,noheader"],
+        capture_output=True, text=True
     )
-    temp_info = result.stdout
-    match = re.search(r"GPU Current Temp\s+:\s+(\d+) C", temp_info)
-    return int(match.group(1)) if match else None
+    lines = result.stdout.strip().splitlines()
+    gpus = []
+    for line in lines:
+        idx, name, temp = [x.strip() for x in line.split(",")]
+        gpus.append({
+            "index": int(idx),
+            "name": name,
+            "temperature": int(temp)
+        })
+    return gpus
 
+def get_max_gpu_temp(gpus):
+    """
+    获取多张显卡中的最高温度
+    参数:
+        gpus (list): 由 get_gpu_temp_info() 返回的 GPU 信息列表
+    返回:
+        int: 最高温度值（摄氏度）
+    """
+    if not gpus:
+        return None
+    return max(gpu["temperature"] for gpu in gpus)
+
+
+def format_gpu_temp_string(gpus):
+    """
+    将 GPU 温度信息格式化为字符串输出
+    参数:
+        gpus (list): 由 get_gpu_temp_info() 返回的 GPU 信息列表
+    返回:
+        str: 格式化后的字符串，例如：
+             "[0] Tesla V100-SXM2-32GB: 52C, [1] Tesla P40: 49C"
+    """
+    if not gpus:
+        return "No GPUs detected."
+
+    parts = [f"[{gpu['index']}] {gpu['name']}: {gpu['temperature']}C" for gpu in gpus]
+    return ", ".join(parts)
+
+def format_sensor_temp_string(sensor_temps):
+    if not sensor_temps:
+        return "No CPU tempers detected."
+
+    parts = [f"[{sensor_temp}C" for sensor_temp in sensor_temps]
+    return ", ".join(parts)
 
 # Function to extract numeric values from strings based on a regex pattern
 def extract_numeric_value(s, pattern):
@@ -241,12 +284,13 @@ def main(stdscr):
         cpu_count = 0
 
         # Extract highest temperature and mean fan speed
-        highest_sensor_temp = max(
-            [
+        sensor_temps = [
                 extract_numeric_value(s, r"\b(\d+\.?\d*) degrees C\b")
                 for s in temp_info
                 if extract_numeric_value(s, r"\b(\d+\.?\d*) degrees C\b") is not None
             ]
+        highest_sensor_temp = max(
+            sensor_temps
         )
         fan_speeds = [
             extract_numeric_value(s, r"\b(\d+\.?\d*) RPM\b")
@@ -254,7 +298,7 @@ def main(stdscr):
             if extract_numeric_value(s, r"\b(\d+\.?\d*) RPM\b") is not None
         ]
         mean_fan_speed = int(sum(fan_speeds) / len(fan_speeds)) if fan_speeds else 0
-        gpu_temp = get_gpu_temp_info()
+        gpu_infos= get_gpu_temp_info()
 
         # Sometimes when the server just boot, cannot get the temperature and the container will exit. Wait until the temperature is valid.
         tempValid = True
@@ -262,7 +306,7 @@ def main(stdscr):
             tempValid = False
             print("Sensors are not ready yet, wait for 5 seconds...")
 
-        if gpu_temp is None:
+        if gpu_infos.count == 0:
             tempValid = False
             print("nvidia-smi is not ready yet, wait for 5 seconds...")
 
@@ -272,11 +316,15 @@ def main(stdscr):
 
         set_fan_speed_control_mode(True)
 
-        max_temp = max(highest_sensor_temp, gpu_temp)
+        gpu_max_temp = get_max_gpu_temp(gpu_infos)
+        gpu_info_text = format_gpu_temp_string(gpu_infos)
+        max_temp = max(highest_sensor_temp, gpu_max_temp)
 
         # Update Flusk variables
         sensor_data["highest_sensor_temp"] = highest_sensor_temp
-        sensor_data["gpu_temp"] = gpu_temp
+        sensor_data["sensor_temps"] = sensor_temps
+        sensor_data["gpu_temp"] = gpu_max_temp
+        sensor_data["gpu_infos"] = gpu_infos
         sensor_data["mean_fan_speed"] = mean_fan_speed
         sensor_data["status"] = "OK"
         sensor_data["time"] = current_time
@@ -284,12 +332,12 @@ def main(stdscr):
         # Log information
         logging.info(f"Heat of Highest Temp Sensor: {highest_sensor_temp}C")
         logging.info(f"Mean Fan Speed: {mean_fan_speed} RPM")
-        logging.info(f"GPU Temperature: {gpu_temp}C")
+        logging.info(f"GPU Temperature: {gpu_info_text}")
 
         # Get color pairs for display
         sensor_temp_color = get_color_for_value(highest_sensor_temp, "temperature")
         fan_speed_color = get_color_for_value(mean_fan_speed, "fan_speed")
-        gpu_temp_color = get_color_for_value(gpu_temp, "temperature")
+        gpu_temp_color = get_color_for_value(gpu_max_temp, "temperature")
 
         # Display information (only if using curses)
         if USE_CURSES:
@@ -313,8 +361,8 @@ def main(stdscr):
                     0,
                     90,
                     (
-                        f"GPU Temperature: {gpu_temp}C"
-                        if gpu_temp is not None
+                        f"GPU Temperature: {gpu_info_text}"
+                        if gpu_infos.count > 0
                         else "GPU Temperature: N/A"
                     ),
                     curses.color_pair(gpu_temp_color),
@@ -341,7 +389,7 @@ def main(stdscr):
 
         else:
             print(
-                f"[{current_time}] Sensor: {highest_sensor_temp}C | GPU: {gpu_temp}C | Fan: {mean_fan_speed} RPM\n",
+                f"[{current_time}] Sensor: {highest_sensor_temp}C ({format_sensor_temp_string(sensor_temps)}) | GPU: {gpu_max_temp}C ({gpu_info_text}) | Fan: {mean_fan_speed} RPM\n",
                 end="",
             )
 
