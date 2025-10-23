@@ -183,7 +183,7 @@ def format_sensor_temp_string(sensor_temps):
     if not sensor_temps:
         return "No CPU tempers detected."
 
-    parts = [f"[{sensor_temp}C" for sensor_temp in sensor_temps]
+    parts = [f"{sensor_temp}C" for sensor_temp in sensor_temps]
     return ", ".join(parts)
 
 # Function to extract numeric values from strings based on a regex pattern
